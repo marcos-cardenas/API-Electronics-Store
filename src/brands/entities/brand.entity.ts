@@ -1,0 +1,14 @@
+import { Product } from 'src/products/entities/product.entity';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity('brands')
+export class Brand {
+  @PrimaryGeneratedColumn('increment')
+  id: number;
+  @Column('varchar')
+  name: string;
+  @Column('varchar')
+  country: string;
+  @OneToMany(() => Product, (product) => product.brand)
+  products: Product[];
+}

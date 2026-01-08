@@ -6,12 +6,15 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
+
+import { CreateProductDto, UpdateProductDto } from './dto';
 import { Product } from './entities/product.entity';
-import { Repository } from 'typeorm';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { BrandsService } from '../brands/brands.service';
+import { Brand } from 'src/brands/entities/brand.entity';
+import { User } from 'src/auth/entities/user.entity';
 
 @Injectable()
 export class ProductsService {
@@ -19,10 +22,18 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    private readonly brandsService: BrandsService,
   ) {}
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, user: User) {
+    const { brandId, technicalSpec } = createProductDto;
+    const brand = await this.brandsService.findOne(brandId);
     try {
-      const product = this.productRepository.create(createProductDto);
+      const product = this.productRepository.create({
+        ...createProductDto,
+        brand,
+        technicalSpec,
+        user,
+      });
       await this.productRepository.save(product);
       return product;
     } catch (error) {
@@ -31,38 +42,61 @@ export class ProductsService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit = 10, page = 1 } = paginationDto;
+    const { limit = 10, page = 1, min = 0 } = paginationDto;
     const products = await this.productRepository.find({
       take: limit,
       skip: (page - 1) * limit,
+      where: {
+        stock: MoreThanOrEqual(min),
+      },
     });
     const total = await this.productRepository.count({});
     return {
       data: products,
       meta: {
         page: page,
+        limit,
         total,
       },
     };
   }
 
   async findOne(id: number) {
-    const product = await this.productRepository.findOneBy({ id });
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: ['technicalSpec'],
+    });
     if (!product)
       throw new NotFoundException(`The product with id ${id} was not found`);
     return product;
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
-    const product = await this.productRepository.preload({
-      id,
-      ...updateProductDto,
-    });
+    delete updateProductDto.technicalSpec;
+    const { brandId } = updateProductDto;
+    let brand: Brand;
+    let product;
+    if (brandId) {
+      brand = await this.brandsService.findOne(brandId);
+      product = await this.productRepository.preload({
+        id,
+        ...updateProductDto,
+        brand: {
+          id: brand.id,
+        },
+      });
+    } else {
+      product = await this.productRepository.preload({
+        id,
+        ...updateProductDto,
+      });
+    }
 
     if (!product)
       throw new NotFoundException(`The product with id ${id} was not found`);
     try {
       await this.productRepository.save(product);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return product;
     } catch (error) {
       this.handleDBExceptions(error);

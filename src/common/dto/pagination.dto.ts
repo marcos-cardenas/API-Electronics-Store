@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsPositive } from 'class-validator';
+import { IsInt, IsOptional, IsPositive, Min } from 'class-validator';
 
 export class PaginationDto {
   @IsOptional()
@@ -14,4 +13,10 @@ export class PaginationDto {
   @Type(() => Number)
   @IsInt()
   public page?: number;
+
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  @IsInt()
+  public min?: number;
 }
