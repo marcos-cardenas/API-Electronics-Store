@@ -14,10 +14,10 @@ import {
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { ProductsService } from './products.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { Auth } from 'src/auth/decorators/auth.decorator';
-import { GetUser } from 'src/auth/decorators/get-user.decorator';
-import { User } from 'src/auth/entities/user.entity';
-import { ValidRoles } from 'src/auth/interfaces';
+import { Auth } from '../auth/decorators/auth.decorator';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { User } from '../auth/entities/user.entity';
+import { ValidRoles } from '../auth/interfaces';
 
 @Controller('products')
 export class ProductsController {

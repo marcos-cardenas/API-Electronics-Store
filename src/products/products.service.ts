@@ -13,8 +13,8 @@ import { CreateProductDto, UpdateProductDto } from './dto';
 import { Product } from './entities/product.entity';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { BrandsService } from '../brands/brands.service';
-import { Brand } from 'src/brands/entities/brand.entity';
-import { User } from 'src/auth/entities/user.entity';
+import { Brand } from '../brands/entities/brand.entity';
+import { User } from '../auth/entities/user.entity';
 
 @Injectable()
 export class ProductsService {
@@ -26,6 +26,8 @@ export class ProductsService {
   ) {}
   async create(createProductDto: CreateProductDto, user: User) {
     const { brandId, technicalSpec } = createProductDto;
+    // Llamada al metodo para verificar si existe el id de la marca
+    // para despues pasar a la creacion del producto
     const brand = await this.brandsService.findOne(brandId);
     try {
       const product = this.productRepository.create({
@@ -62,6 +64,7 @@ export class ProductsService {
   }
 
   async findOne(id: number) {
+    // producto que viene con la data de los detalles tecnicos del producto
     const product = await this.productRepository.findOne({
       where: { id },
       relations: ['technicalSpec'],
@@ -72,10 +75,14 @@ export class ProductsService {
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
+    // Eliminacion de los detalles tecnicos del DTO
     delete updateProductDto.technicalSpec;
     const { brandId } = updateProductDto;
     let brand: Brand;
     let product;
+
+    // Comprobar si viene en el DTO el id de la llave foranea
+    // Si viene en el DTO para realizar el cambio por otra marca
     if (brandId) {
       brand = await this.brandsService.findOne(brandId);
       product = await this.productRepository.preload({
